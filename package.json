@@ -1,16 +1,20 @@
 {
   "name": "pk-laser-os",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed-admin": "tsx scripts/seed-admin.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
+    "bcryptjs": "^3.0.2",
     "drizzle-orm": "^0.44.5",
     "jose": "^6.1.0",
     "next": "^16.0.0",
@@ -25,6 +29,7 @@
     "drizzle-kit": "^0.31.4",
     "eslint": "^9.34.0",
     "eslint-config-next": "^16.0.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   }
 }
