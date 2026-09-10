@@ -34,7 +34,10 @@ export const machines = pgTable("machines", {
   customerName: varchar("customer_name", { length: 200 }).notNull(),
   location: text("location"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
 });
 
 export const serviceTickets = pgTable("service_tickets", {
@@ -45,5 +48,8 @@ export const serviceTickets = pgTable("service_tickets", {
   assignedTo: uuid("assigned_to").references(() => users.id),
   createdBy: uuid("created_by").references(() => users.id).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
 });
