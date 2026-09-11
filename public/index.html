@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PK LASER OS</title>
+  <title>PK LASER AI OS</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
   <main class="shell">
     <section id="loginView" class="card login-card">
-      <div class="eyebrow">PK LASER</div>
-      <h1>PK LASER OS</h1>
-      <p class="muted">Hệ điều hành vận hành kỹ thuật, máy móc và dịch vụ.</p>
+      <div class="eyebrow">PK LASER · AI OS</div>
+      <h1>Technical Intelligence</h1>
+      <p class="muted">Hệ điều hành AI cho máy móc, dịch vụ kỹ thuật và tri thức sửa chữa.</p>
       <form id="loginForm">
         <label>Email<input id="email" type="email" autocomplete="username" required /></label>
         <label>Mật khẩu<input id="password" type="password" autocomplete="current-password" required /></label>
@@ -22,14 +22,71 @@
 
     <section id="appView" hidden>
       <header class="topbar">
-        <div><div class="eyebrow">PK LASER</div><h1>Operations Dashboard</h1></div>
+        <div><div class="eyebrow">PK LASER · AI OS</div><h1>Technical Brain</h1></div>
         <div class="userbox"><span id="userName"></span><button id="logoutBtn" class="ghost">Đăng xuất</button></div>
       </header>
-      <div class="grid">
+
+      <div class="grid metrics-grid">
         <article class="card metric"><span>Hệ thống</span><strong id="healthStatus">Đang kiểm tra…</strong></article>
         <article class="card metric"><span>Vai trò</span><strong id="userRole">—</strong></article>
-        <article class="card"><h2>Production foundation</h2><p>Authentication, session, D1 schema và API health đã sẵn sàng. Machine, Ticket và KPI sẽ nối vào cùng lớp API này.</p></article>
+        <article class="card metric"><span>AI Engine</span><strong>Causal v1</strong></article>
+        <article class="card metric"><span>Chế độ</span><strong>Human-in-loop</strong></article>
       </div>
+
+      <section class="card brain-card">
+        <div class="section-heading">
+          <div>
+            <div class="eyebrow">01 · OBSERVE</div>
+            <h2>AI chẩn đoán sự cố</h2>
+            <p class="muted">Chọn những tín hiệu kỹ thuật đang quan sát được. AI sẽ xếp hạng nguyên nhân và đề xuất phép kiểm tra tiếp theo.</p>
+          </div>
+          <div class="brain-status">● AI Brain Online</div>
+        </div>
+
+        <div id="signalGrid" class="signal-grid">
+          <label class="signal"><input type="checkbox" value="CUT_NOT_THROUGH" />Cắt không đứt</label>
+          <label class="signal"><input type="checkbox" value="WEAK_BEAM" />Tia yếu</label>
+          <label class="signal"><input type="checkbox" value="UNSTABLE_BEAM" />Tia không ổn định</label>
+          <label class="signal"><input type="checkbox" value="HEAVY_DROSS" />Xỉ nhiều</label>
+          <label class="signal"><input type="checkbox" value="FOCUS_DRIFT" />Focus bị lệch</label>
+          <label class="signal"><input type="checkbox" value="PRESSURE_LOW" />Áp suất khí thấp</label>
+          <label class="signal"><input type="checkbox" value="NOZZLE_MISALIGN" />Béc lệch tâm</label>
+          <label class="signal"><input type="checkbox" value="PROTECTIVE_LENS_DIRTY" />Kính bảo vệ bẩn/cháy</label>
+          <label class="signal"><input type="checkbox" value="SERVO_ALARM" />Servo báo lỗi</label>
+          <label class="signal"><input type="checkbox" value="POSITION_ERROR" />Sai số vị trí</label>
+        </div>
+        <div class="actions"><button id="diagnoseBtn">Phân tích nguyên nhân</button><span id="diagnoseState" class="muted"></span></div>
+      </section>
+
+      <section id="aiResult" class="result-layout" hidden>
+        <article class="card">
+          <div class="eyebrow">02 · INFER</div>
+          <h2>Nguyên nhân có khả năng</h2>
+          <div id="causeList" class="cause-list"></div>
+        </article>
+        <article class="card">
+          <div class="eyebrow">03 · VERIFY</div>
+          <h2>Kiểm tra tiếp theo</h2>
+          <div id="testList" class="test-list"></div>
+        </article>
+        <article class="card full-span">
+          <div class="eyebrow">04 · LEARN</div>
+          <h2>Phản hồi kết quả sửa chữa</h2>
+          <p class="muted">Sau khi xác minh thực tế, chọn nguyên nhân đúng để AI cập nhật trọng số nhân quả cho các ca tiếp theo.</p>
+          <div class="feedback-row">
+            <select id="confirmedCause"></select>
+            <select id="feedbackOutcome">
+              <option value="confirmed">Xác nhận đúng</option>
+              <option value="partially_confirmed">Đúng một phần</option>
+              <option value="rejected">Loại trừ</option>
+              <option value="unknown">Chưa xác định</option>
+            </select>
+            <button id="feedbackBtn">Gửi phản hồi cho AI</button>
+          </div>
+          <p id="feedbackState" class="muted"></p>
+          <p id="safetyNote" class="safety"></p>
+        </article>
+      </section>
     </section>
   </main>
   <script type="module" src="/app.js"></script>
