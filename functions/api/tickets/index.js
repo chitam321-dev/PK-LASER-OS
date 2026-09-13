@@ -19,6 +19,9 @@ export async function onRequestPost(context) {
   const machineId=clean(b.machineId,100),detail=clean(b.issueDetail,5000); if(!machineId||!detail)return json({error:'machine_and_issue_required'},400);
   const machine=await context.env.DB.prepare('SELECT id FROM machines WHERE id=?').bind(machineId).first();if(!machine)return json({error:'machine_not_found'},404);
   const ticketId=id('tkt'), assigned=clean(b.assignedTo,100); const status=assigned?'assigned':'open';
+  if(assigned && auth.user.role!=='admin')return json({error:'assignment_requires_admin'},403);
+  if(!['low','normal','high','critical'].includes(b.priority||'normal'))return json({error:'invalid_priority'},400);
+  if(assigned){const target=await context.env.DB.prepare("SELECT id FROM users WHERE id=? AND role='technical' AND is_active=1").bind(assigned).first();if(!target)return json({error:'invalid_assignee'},400)}
   await context.env.DB.prepare(`INSERT INTO service_tickets (id,machine_id,created_by,assigned_to,title,issue_detail,symptom_code,priority,status) VALUES (?,?,?,?,?,?,?,?,?)`).bind(ticketId,machineId,auth.user.id,assigned,clean(b.title,200)||detail.slice(0,80),detail,clean(b.symptomCode,100),clean(b.priority,20)||'normal',status).run();
   await event(context.env.DB,ticketId,auth.user.id,'ticket_created',{assignedTo:assigned,priority:clean(b.priority,20)||'normal'});
   return json({id:ticketId,status},201);

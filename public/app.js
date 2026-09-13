@@ -1,3 +1,5 @@
+import { mountHandbook } from './handbook.js';
+mountHandbook();
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],S={machines:[],tickets:[],techs:[],run:null,stream:null};
 const sig=[['CUT_NOT_THROUGH','Cắt không đứt'],['WEAK_BEAM','Tia yếu'],['UNSTABLE_BEAM','Tia không ổn định'],['HEAVY_DROSS','Xỉ nhiều'],['FOCUS_DRIFT','Focus lệch'],['PRESSURE_LOW','Áp suất khí thấp'],['NOZZLE_MISALIGN','Béc lệch tâm'],['PROTECTIVE_LENS_DIRTY','Kính bẩn/cháy'],['SERVO_ALARM','Servo báo lỗi'],['POSITION_ERROR','Sai số vị trí']];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),empty=()=>'<p class="muted">Chưa có dữ liệu.</p>',badge=v=>`<span class="pill ${['critical','open'].includes(v)?'bad':['closed','resolved','active'].includes(v)?'good':''}">${esc(v)}</span>`,dt=v=>v?new Date(v.replace(' ','T')+'Z').toLocaleString('vi-VN'):'—';

@@ -22,6 +22,8 @@ export async function onRequestPatch(context){
   const allowed=['open','assigned','diagnosing','waiting_parts','resolved','closed'];const next=clean(b.status,30)||t.status;if(!allowed.includes(next))return json({error:'invalid_status'},400);
   if(next==='closed'&&!clean(b.resolution,5000)&&!t.resolution)return json({error:'resolution_required_to_close'},400);
   const assigned=Object.hasOwn(b,'assignedTo')?clean(b.assignedTo,100):t.assigned_to;
+  if(assigned!==t.assigned_to && auth.user.role!=='admin')return json({error:'assignment_requires_admin'},403);
+  if(assigned){const target=await context.env.DB.prepare("SELECT id FROM users WHERE id=? AND role='technical' AND is_active=1").bind(assigned).first();if(!target)return json({error:'invalid_assignee'},400)}
   await context.env.DB.prepare(`UPDATE service_tickets SET assigned_to=?,status=?,diagnosis=?,resolution=?,confirmed_cause_code=?,labor_minutes=?,downtime_minutes=?,updated_at=CURRENT_TIMESTAMP,resolved_at=CASE WHEN ? IN ('resolved','closed') THEN COALESCE(resolved_at,CURRENT_TIMESTAMP) ELSE NULL END WHERE id=?`).bind(assigned,next,Object.hasOwn(b,'diagnosis')?clean(b.diagnosis,5000):t.diagnosis,Object.hasOwn(b,'resolution')?clean(b.resolution,5000):t.resolution,Object.hasOwn(b,'confirmedCauseCode')?clean(b.confirmedCauseCode,100):t.confirmed_cause_code,Number(b.laborMinutes??t.labor_minutes)||0,Number(b.downtimeMinutes??t.downtime_minutes)||0,next,t.id).run();
   await event(context.env.DB,t.id,auth.user.id,'ticket_updated',{fromStatus:t.status,toStatus:next,assignedTo:assigned});return json({ok:true,status:next});
 }
