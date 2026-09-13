@@ -17,7 +17,7 @@ export async function onRequestPost(context) {
   if (!runId) return json({ error: 'run_id_required' }, 400);
   if (!allowed.includes(outcome)) return json({ error: 'invalid_outcome' }, 400);
 
-  const run = await context.env.DB.prepare('SELECT id FROM ai_diagnostic_runs WHERE id = ? LIMIT 1').bind(runId).first();
+  const run = await context.env.DB.prepare('SELECT id, ticket_id FROM ai_diagnostic_runs WHERE id = ? LIMIT 1').bind(runId).first();
   if (!run) return json({ error: 'diagnostic_run_not_found' }, 404);
 
   if (confirmedCauseCode) {
@@ -42,5 +42,19 @@ export async function onRequestPost(context) {
 
   await updateLearningFromFeedback(context.env.DB, runId, confirmedCauseCode, outcome);
 
-  return json({ ok: true, feedbackId, learningApplied: Boolean(confirmedCauseCode && outcome !== 'unknown') });
+  if (run.ticket_id) {
+    await context.env.DB.prepare(`UPDATE service_tickets SET
+      confirmed_cause_code=COALESCE(?,confirmed_cause_code),
+      diagnosis=COALESCE(?,diagnosis),
+      resolution=COALESCE(?,resolution),updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(
+      confirmedCauseCode,
+      confirmedCauseCode ? `AI + kỹ thuật xác nhận: ${confirmedCauseCode}` : null,
+      body.resolutionNote ? String(body.resolutionNote).slice(0,5000) : null,
+      run.ticket_id,
+    ).run();
+    await context.env.DB.prepare(`INSERT INTO ticket_events (id,ticket_id,actor_user_id,event_type,payload)
+      VALUES (?,?,?,?,?)`).bind(`evt_${randomToken(16)}`,run.ticket_id,auth.user.id,'ai_feedback',JSON.stringify({runId,outcome,confirmedCauseCode})).run();
+  }
+
+  return json({ ok: true, feedbackId, ticketUpdated: Boolean(run.ticket_id), learningApplied: Boolean(confirmedCauseCode && outcome !== 'unknown') });
 }

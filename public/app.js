@@ -1,178 +1,23 @@
-const loginView = document.querySelector('#loginView');
-const appView = document.querySelector('#appView');
-const loginForm = document.querySelector('#loginForm');
-const loginError = document.querySelector('#loginError');
-const userName = document.querySelector('#userName');
-const userRole = document.querySelector('#userRole');
-const healthStatus = document.querySelector('#healthStatus');
-const diagnoseBtn = document.querySelector('#diagnoseBtn');
-const diagnoseState = document.querySelector('#diagnoseState');
-const aiResult = document.querySelector('#aiResult');
-const causeList = document.querySelector('#causeList');
-const testList = document.querySelector('#testList');
-const confirmedCause = document.querySelector('#confirmedCause');
-const feedbackOutcome = document.querySelector('#feedbackOutcome');
-const feedbackBtn = document.querySelector('#feedbackBtn');
-const feedbackState = document.querySelector('#feedbackState');
-const safetyNote = document.querySelector('#safetyNote');
-
-let currentRunId = null;
-let currentDiagnosis = null;
-
-async function api(path, options = {}) {
-  const response = await fetch(path, {
-    credentials: 'same-origin',
-    headers: { 'content-type': 'application/json', ...(options.headers || {}) },
-    ...options,
-  });
-  let data = {};
-  try { data = await response.json(); } catch {}
-  if (!response.ok) throw Object.assign(new Error(data.error || 'request_failed'), { status: response.status, data });
-  return data;
-}
-
-function showApp(user) {
-  loginView.hidden = true;
-  appView.hidden = false;
-  userName.textContent = user.name;
-  userRole.textContent = user.role;
-}
-
-function showLogin() {
-  appView.hidden = true;
-  loginView.hidden = false;
-  aiResult.hidden = true;
-  currentRunId = null;
-  currentDiagnosis = null;
-}
-
-function pct(value) {
-  return `${Math.round((Number(value) || 0) * 100)}%`;
-}
-
-function renderDiagnosis(result) {
-  currentDiagnosis = result;
-  currentRunId = result.runId;
-  causeList.innerHTML = '';
-  testList.innerHTML = '';
-  confirmedCause.innerHTML = '<option value="">— Chọn nguyên nhân thực tế —</option>';
-
-  for (const cause of result.rankedCauses || []) {
-    const item = document.createElement('div');
-    item.className = 'cause-item';
-    const evidence = (cause.evidence || []).map(e => `${e.signalCode}: ${e.contribution >= 0 ? '+' : ''}${e.contribution.toFixed(2)}`).join(' · ');
-    item.innerHTML = `
-      <div class="cause-head"><strong>#${cause.rank} ${cause.name}</strong><span>${pct(cause.probability)}</span></div>
-      <div class="bar"><i style="width:${Math.max(2, cause.probability * 100)}%"></i></div>
-      <div class="muted small">${cause.subsystem} · confidence ${pct(cause.confidence)}${evidence ? ` · ${evidence}` : ''}</div>
-    `;
-    causeList.appendChild(item);
-
-    const option = document.createElement('option');
-    option.value = cause.code;
-    option.textContent = `${cause.name} (${pct(cause.probability)})`;
-    confirmedCause.appendChild(option);
-  }
-
-  for (const test of result.nextTests || []) {
-    const item = document.createElement('div');
-    item.className = 'test-item';
-    item.innerHTML = `
-      <div class="test-rank">${test.priority}</div>
-      <div><strong>${test.testName}</strong><p>${test.instructions}</p><span class="muted small">Nhắm tới: ${test.causeName} · information gain ${pct(test.informationGain)}</span></div>
-    `;
-    testList.appendChild(item);
-  }
-
-  safetyNote.textContent = result.safetyNote || '';
-  aiResult.hidden = false;
-  diagnoseState.textContent = result.needsMoreEvidence
-    ? 'AI chưa đủ chắc chắn — nên thực hiện phép kiểm tra tiếp theo.'
-    : `Nguyên nhân dẫn đầu: ${result.topCause?.name || '—'} (${pct(result.topCause?.probability)})`;
-}
-
-async function boot() {
-  try {
-    const { user } = await api('/api/auth/me', { method: 'GET' });
-    showApp(user);
-    const health = await api('/api/health', { method: 'GET' });
-    healthStatus.textContent = health.ok ? 'Online' : 'Có lỗi';
-  } catch {
-    showLogin();
-  }
-}
-
-loginForm.addEventListener('submit', async event => {
-  event.preventDefault();
-  loginError.hidden = true;
-  try {
-    const { user } = await api('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: document.querySelector('#email').value,
-        password: document.querySelector('#password').value,
-      }),
-    });
-    showApp(user);
-    const health = await api('/api/health', { method: 'GET' });
-    healthStatus.textContent = health.ok ? 'Online' : 'Có lỗi';
-  } catch (error) {
-    loginError.textContent = error.status === 401 ? 'Email hoặc mật khẩu không đúng.' : 'Không thể đăng nhập.';
-    loginError.hidden = false;
-  }
-});
-
-document.querySelector('#logoutBtn').addEventListener('click', async () => {
-  try { await api('/api/auth/logout', { method: 'POST', body: '{}' }); } finally { showLogin(); }
-});
-
-diagnoseBtn.addEventListener('click', async () => {
-  const selected = [...document.querySelectorAll('#signalGrid input:checked')];
-  if (!selected.length) {
-    diagnoseState.textContent = 'Hãy chọn ít nhất một tín hiệu kỹ thuật.';
-    return;
-  }
-
-  diagnoseBtn.disabled = true;
-  diagnoseState.textContent = 'Đang suy luận nhân quả…';
-  feedbackState.textContent = '';
-
-  try {
-    const result = await api('/api/ai/diagnose', {
-      method: 'POST',
-      body: JSON.stringify({
-        evidence: selected.map(input => ({ signalCode: input.value, present: true, confidence: 1 })),
-      }),
-    });
-    renderDiagnosis(result);
-  } catch (error) {
-    diagnoseState.textContent = error.data?.message || 'AI chưa thể phân tích dữ liệu này.';
-  } finally {
-    diagnoseBtn.disabled = false;
-  }
-});
-
-feedbackBtn.addEventListener('click', async () => {
-  if (!currentRunId) return;
-  feedbackBtn.disabled = true;
-  feedbackState.textContent = 'Đang cập nhật bộ nhớ AI…';
-  try {
-    const result = await api('/api/ai/feedback', {
-      method: 'POST',
-      body: JSON.stringify({
-        runId: currentRunId,
-        confirmedCauseCode: confirmedCause.value || null,
-        outcome: feedbackOutcome.value,
-      }),
-    });
-    feedbackState.textContent = result.learningApplied
-      ? 'Đã ghi nhận. Trọng số nhân quả đã được cập nhật cho các ca tiếp theo.'
-      : 'Đã lưu phản hồi, chưa thay đổi trọng số học.';
-  } catch {
-    feedbackState.textContent = 'Không thể lưu phản hồi.';
-  } finally {
-    feedbackBtn.disabled = false;
-  }
-});
-
-boot();
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],S={machines:[],tickets:[],techs:[],run:null,stream:null};
+const sig=[['CUT_NOT_THROUGH','Cắt không đứt'],['WEAK_BEAM','Tia yếu'],['UNSTABLE_BEAM','Tia không ổn định'],['HEAVY_DROSS','Xỉ nhiều'],['FOCUS_DRIFT','Focus lệch'],['PRESSURE_LOW','Áp suất khí thấp'],['NOZZLE_MISALIGN','Béc lệch tâm'],['PROTECTIVE_LENS_DIRTY','Kính bẩn/cháy'],['SERVO_ALARM','Servo báo lỗi'],['POSITION_ERROR','Sai số vị trí']];
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),empty=()=>'<p class="muted">Chưa có dữ liệu.</p>',badge=v=>`<span class="pill ${['critical','open'].includes(v)?'bad':['closed','resolved','active'].includes(v)?'good':''}">${esc(v)}</span>`,dt=v=>v?new Date(v.replace(' ','T')+'Z').toLocaleString('vi-VN'):'—';
+async function api(p,o={}){const r=await fetch(p,{credentials:'same-origin',headers:{'content-type':'application/json'},...o});let d={};try{d=await r.json()}catch{}if(!r.ok)throw Object.assign(new Error(d.error),{data:d,status:r.status});return d}
+async function view(n){$$('.view').forEach(x=>x.hidden=x.id!==n+'View');$$('#nav button').forEach(x=>x.classList.toggle('active',x.dataset.view===n));$('#pageTitle').textContent={dashboard:'Tổng quan',machines:'Máy & QR',tickets:'Service Ticket',brain:'AI Diagnostic'}[n];await({dashboard,machines,tickets,brain}[n])()}
+async function dashboard(){const d=await api('/api/dashboard'),s=d.summary||{};$('#metrics').innerHTML=[['Máy quản lý',s.machines],['Ticket mở',s.open_tickets],['Critical',s.critical_tickets],['MTTR 30 ngày',s.mttr_hours==null?'—':s.mttr_hours+' giờ']].map(x=>`<article class="card metric"><span>${x[0]}</span><strong>${x[1]??0}</strong></article>`).join('');$('#recentTickets').innerHTML=(d.recent||[]).map(t=>rowTicket(t)).join('')||empty();$('#techLoad').innerHTML=(d.technicians||[]).map(x=>`<div class="row"><span><b>${esc(x.name)}</b><small>${x.diagnosing_count||0} đang chẩn đoán</small></span><strong>${x.active_count||0}</strong></div>`).join('')||empty();const max=Math.max(1,...d.trend.map(x=>x.opened));$('#trendChart').innerHTML=d.trend.map(x=>`<div title="${x.opened} ticket"><i style="height:${Math.max(5,x.opened/max*100)}%"></i><small>${x.day.slice(5)}</small></div>`).join('')||empty();$('#topCauses').innerHTML=d.topCauses.map(x=>`<div class="row"><span>${esc(x.cause)}</span><strong>${x.count}</strong></div>`).join('')||empty()}
+const rowTicket=t=>`<button class="row open-ticket" data-id="${t.id}"><span><b>${esc(t.title)}</b><small>${esc(t.internal_code||t.serial_no)} · ${esc(t.assigned_to_name||'Chưa giao')} · ${dt(t.opened_at)}</small></span>${badge(t.status)}</button>`;
+async function machines(){const d=await api('/api/machines?q='+encodeURIComponent($('#machineSearch').value));S.machines=d.machines;$('#machineList').innerHTML=S.machines.map(m=>`<article class="card machine"><div><span class="eyebrow">${esc(m.internal_code||m.serial_no)}</span><h3>${esc(m.model)}</h3><p>${esc(m.customer_name||'Chưa có khách hàng')} · ${esc(m.location||'Chưa có vị trí')}</p></div><div>${badge(m.status)}<p><b>${m.open_ticket_count}</b> ticket mở</p><button class="open-machine ghost" data-id="${m.id}">Mở hồ sơ</button></div></article>`).join('')||empty();selects()}
+async function tickets(){const d=await api('/api/tickets?status='+encodeURIComponent($('#ticketFilter').value));S.tickets=d.tickets;$('#ticketList').innerHTML=S.tickets.map(rowTicket).join('')||empty();selects()}
+async function brain(){if(!S.machines.length)await machines();if(!S.tickets.length)await tickets();$('#signalGrid').innerHTML=sig.map(x=>`<label class="signal"><input type="checkbox" value="${x[0]}">${x[1]}</label>`).join('')}
+function selects(){$('#diagMachine').innerHTML='<option value="">Không chọn</option>'+S.machines.map(m=>`<option value="${m.id}">${esc(m.internal_code||m.serial_no)} · ${esc(m.model)}</option>`).join('');$('#diagTicket').innerHTML='<option value="">Không chọn</option>'+S.tickets.filter(t=>!['closed','resolved'].includes(t.status)).map(t=>`<option value="${t.id}">${esc(t.title)}</option>`).join('')}
+function modal(title,html,save){$('#modalTitle').textContent=title;$('#modalBody').innerHTML=html;$('#modalState').textContent='';$('#modalSave').hidden=!save;$('#modalForm').onsubmit=async e=>{e.preventDefault();try{await save(new FormData(e.target));$('#modal').close()}catch(x){$('#modalState').textContent=x.data?.error||'Không thể lưu'}};$('#modal').showModal()}
+async function loadTech(){if(!S.techs.length)try{S.techs=(await api('/api/users?role=technical')).users}catch{}return S.techs}
+function newMachine(){modal('Thêm Machine Profile',`<div class="form-grid"><label>Mã nội bộ<input name="internalCode" value="PKL-"></label><label>Serial *<input name="serialNo" required></label><label>Model *<input name="model" required></label><label>Khách hàng<input name="customerName"></label><label>Điện thoại<input name="customerPhone"></label><label>Vị trí<input name="location"></label><label>Đầu cắt<input name="cuttingHead"></label><label>Controller<input name="controller"></label><label>Height controller<input name="heightController"></label><label>Nguồn laser<input name="laserSource"></label><label>Chiller<input name="chiller"></label><label>Servo<input name="servoBrand"></label></div><label>Ghi chú<textarea name="notes"></textarea></label>`,async f=>{await api('/api/machines',{method:'POST',body:JSON.stringify(Object.fromEntries(f))});await machines()})}
+async function newTicket(machineId=''){if(!S.machines.length)await machines();await loadTech();modal('Tạo Service Ticket',`<div class="form-grid"><label>Máy *<select name="machineId" required>${S.machines.map(m=>`<option value="${m.id}" ${m.id===machineId?'selected':''}>${esc(m.internal_code||m.serial_no)} · ${esc(m.model)}</option>`)}</select></label><label>Ưu tiên<select name="priority"><option>normal</option><option>high</option><option>critical</option><option>low</option></select></label><label>Tiêu đề *<input name="title" required></label><label>Phân công<select name="assignedTo"><option value="">Chưa giao</option>${S.techs.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`)}</select></label></div><label>Mô tả sự cố *<textarea name="issueDetail" required></textarea></label>`,async f=>{await api('/api/tickets',{method:'POST',body:JSON.stringify(Object.fromEntries(f))});await tickets()})}
+async function openMachine(id){const d=await api('/api/machines/'+id),m=d.machine;modal(`Máy · ${m.internal_code||m.serial_no}`,`<div class="detail-grid">${[['Model',m.model],['Khách hàng',m.customer_name],['Đầu cắt',m.cutting_head],['Controller',m.controller],['Nguồn',m.laser_source],['Chiller',m.chiller]].map(x=>`<div><span>${x[0]}</span><b>${esc(x[1]||'—')}</b></div>`).join('')}</div><section class="qr"><img src="${d.qrImageUrl}" alt="QR"><div><h3>QR nhận dạng máy</h3><p>In và dán lên máy để mở đúng hồ sơ.</p><a href="${d.qrImageUrl}" target="_blank">Mở QR để in</a></div></section><h3>Lịch sử sửa chữa</h3><div class="list">${d.repairHistory.map(rowTicket).join('')||empty()}</div><button type="button" id="ticketForMachine">Tạo ticket cho máy</button>`,null);$('#ticketForMachine').onclick=()=>{$('#modal').close();newTicket(id)}}
+async function openTicket(id){const d=await api('/api/tickets/'+id),t=d.ticket;await loadTech();modal(`Ticket · ${t.title}`,`<div class="detail-grid"><div><span>Máy</span><b>${esc(t.internal_code||t.serial_no)}</b></div><div><span>Ưu tiên</span>${badge(t.priority)}</div><div><span>Người tạo</span><b>${esc(t.created_by_name)}</b></div><div><span>Mở lúc</span><b>${dt(t.opened_at)}</b></div></div><p>${esc(t.issue_detail)}</p><div class="form-grid"><label>Phân công<select name="assignedTo"><option value="">Chưa giao</option>${S.techs.map(u=>`<option value="${u.id}" ${u.id===t.assigned_to?'selected':''}>${esc(u.name)}</option>`)}</select></label><label>Trạng thái<select name="status">${['open','assigned','diagnosing','waiting_parts','resolved','closed'].map(x=>`<option ${x===t.status?'selected':''}>${x}</option>`)}</select></label><label>Chẩn đoán<textarea name="diagnosis">${esc(t.diagnosis||'')}</textarea></label><label>Kết quả sửa chữa<textarea name="resolution">${esc(t.resolution||'')}</textarea></label></div><h3>Nhật ký xử lý</h3><div class="timeline">${d.actions.map(a=>`<div><b>${esc(a.action_type)} · ${esc(a.actor_name)}</b><p>${esc(a.description)} ${a.result?'→ '+esc(a.result):''}</p><small>${dt(a.created_at)} · ${a.minutes_spent} phút</small></div>`).join('')||empty()}</div><fieldset><legend>Ghi thao tác mới</legend><div class="form-grid"><select id="actionType"><option>inspection</option><option>measurement</option><option>repair</option><option>replacement</option><option>calibration</option><option>test_run</option><option>note</option></select><input id="actionMinutes" type="number" min="0" placeholder="Số phút"><textarea id="actionDesc" placeholder="Đã làm gì?"></textarea><input id="actionResult" placeholder="Kết quả"></div><button type="button" id="addAction">Ghi thao tác</button></fieldset><button type="button" id="aiForTicket" class="ghost">Chẩn đoán bằng AI</button>`,async f=>{await api('/api/tickets/'+id,{method:'PATCH',body:JSON.stringify(Object.fromEntries(f))});await tickets()});$('#addAction').onclick=async()=>{await api(`/api/tickets/${id}/actions`,{method:'POST',body:JSON.stringify({actionType:$('#actionType').value,minutesSpent:$('#actionMinutes').value,description:$('#actionDesc').value,result:$('#actionResult').value})});$('#modal').close();openTicket(id)};$('#aiForTicket').onclick=async()=>{$('#modal').close();await view('brain');$('#diagTicket').value=id;$('#diagMachine').value=t.machine_id}}
+async function diagnose(){const evidence=$$('#signalGrid input:checked').map(x=>({signalCode:x.value,present:true,confidence:1}));if(!evidence.length)return $('#diagnoseState').textContent='Chọn ít nhất một tín hiệu.';$('#diagnoseState').textContent='Đang suy luận…';try{const r=await api('/api/ai/diagnose',{method:'POST',body:JSON.stringify({machineId:$('#diagMachine').value||null,ticketId:$('#diagTicket').value||null,evidence})});S.run=r;$('#causeList').innerHTML=r.rankedCauses.map(c=>`<div class="cause"><div><b>#${c.rank} ${esc(c.name)}</b><strong>${Math.round(c.probability*100)}%</strong></div><i><span style="width:${c.probability*100}%"></span></i><small>${esc(c.subsystem)} · confidence ${Math.round(c.confidence*100)}%</small></div>`).join('');$('#testList').innerHTML=r.nextTests.map(t=>`<div class="row"><span><b>${t.priority}. ${esc(t.testName)}</b><small>${esc(t.instructions)}</small></span></div>`).join('');$('#confirmedCause').innerHTML='<option value="">Chọn nguyên nhân thật</option>'+r.rankedCauses.map(c=>`<option value="${c.code}">${esc(c.name)}</option>`).join('');$('#safetyNote').textContent=r.safetyNote||'';$('#aiResult').hidden=false;$('#diagnoseState').textContent=r.needsMoreEvidence?'Cần kiểm tra thêm.':'Đã có kết quả.'}catch(e){$('#diagnoseState').textContent=e.data?.message||'Không thể chẩn đoán'}}
+async function feedback(){if(!S.run)return;const r=await api('/api/ai/feedback',{method:'POST',body:JSON.stringify({runId:S.run.runId,confirmedCauseCode:$('#confirmedCause').value||null,outcome:$('#feedbackOutcome').value,actionTaken:$('#feedbackAction').value,resolutionNote:$('#feedbackResolution').value})});$('#feedbackState').textContent=r.learningApplied?'Đã cập nhật trọng số AI.':'Đã lưu.'}
+async function scan(){if(!('BarcodeDetector'in window))return $('#scanner').showModal();$('#scanner').showModal();try{S.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});$('#camera').srcObject=S.stream;await $('#camera').play();const d=new BarcodeDetector({formats:['qr_code']});const loop=async()=>{if(!S.stream)return;const c=await d.detect($('#camera'));if(c[0]){const u=new URL(c[0].rawValue,location.origin);$('#qrToken').value=u.searchParams.get('qr')||c[0].rawValue;return openQr()}requestAnimationFrame(loop)};loop()}catch{$('#scanState').textContent='Không mở được camera; hãy nhập token bên dưới.'}}
+function stopScan(){S.stream?.getTracks().forEach(x=>x.stop());S.stream=null;$('#scanner').close()}async function openQr(){try{const d=await api('/api/machine-by-qr/'+encodeURIComponent($('#qrToken').value.trim()));stopScan();await view('machines');openMachine(d.machine.id)}catch{$('#scanState').textContent='QR không hợp lệ.'}}
+async function boot(){try{const {user}=await api('/api/auth/me');$('#loginView').hidden=true;$('#appView').hidden=false;$('#userName').textContent=user.name;$('#userRole').textContent=user.role;await dashboard();const t=new URLSearchParams(location.search).get('qr');if(t){const d=await api('/api/machine-by-qr/'+encodeURIComponent(t));await view('machines');openMachine(d.machine.id)}}catch{$('#appView').hidden=true;$('#loginView').hidden=false}}
+$('#loginForm').onsubmit=async e=>{e.preventDefault();try{await api('/api/auth/login',{method:'POST',body:JSON.stringify({email:$('#email').value,password:$('#password').value})});boot()}catch{$('#loginError').textContent='Email hoặc mật khẩu không đúng.'}};$('#logoutBtn').onclick=async()=>{await api('/api/auth/logout',{method:'POST',body:'{}'});location.reload()};$('#nav').onclick=e=>e.target.dataset.view&&view(e.target.dataset.view);$('#newMachineBtn').onclick=newMachine;$('#newTicketBtn').onclick=()=>newTicket();$('#machineSearch').oninput=machines;$('#ticketFilter').onchange=tickets;$('#diagnoseBtn').onclick=diagnose;$('#feedbackBtn').onclick=feedback;$('#scanQrBtn').onclick=scan;$('#scannerClose').onclick=stopScan;$('#openQrBtn').onclick=openQr;$('#modalClose').onclick=$('#modalCancel').onclick=()=>$('#modal').close();document.body.onclick=e=>{const m=e.target.closest('.open-machine'),t=e.target.closest('.open-ticket');if(m)openMachine(m.dataset.id);if(t)openTicket(t.dataset.id)};boot();
