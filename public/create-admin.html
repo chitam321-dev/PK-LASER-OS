@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer"><title>PK LASER — Tạo quản trị viên đầu tiên</title>
+<style>body{font:16px system-ui;background:#f5f5f7;color:#111;margin:0;padding:24px}main{max-width:620px;margin:auto;background:white;border-radius:20px;padding:24px}label{display:block;margin:16px 0}input,textarea,button{font:inherit;box-sizing:border-box;width:100%;padding:12px;border:1px solid #ccc;border-radius:10px}button{background:#111;color:white;margin:8px 0;cursor:pointer}textarea{min-height:170px}p{line-height:1.6}#status{white-space:pre-wrap}small{color:#555}</style></head>
+<body><main><h1>Tạo quản trị viên đầu tiên</h1>
+<p>Nhập thông tin để tạo câu lệnh SQL. Mật khẩu được băm ngay trên thiết bị, không gửi lên máy chủ và không lưu vào bộ nhớ trình duyệt. Trang này không tự tạo tài khoản.</p>
+<form id="form" autocomplete="off"><label>Email đăng nhập<input id="email" type="email" required maxlength="254"></label><label>Tên hiển thị<input id="name" required maxlength="100"></label><label>Mật khẩu ít nhất 12 ký tự<input id="password" type="password" minlength="12" maxlength="256" autocomplete="new-password" required></label><label>Nhập lại mật khẩu<input id="confirm" type="password" autocomplete="new-password" required></label><button id="generate" type="submit">Tạo câu lệnh SQL</button></form>
+<section id="result" hidden><h2>Chạy trong D1</h2><p>Mở Cloudflare → D1 → <b>pk-laser-os-v2</b> → Console. Dán câu lệnh bên dưới và bấm Execute. Lệnh chỉ tạo khi chưa có bất kỳ tài khoản admin nào, không ghi đè tài khoản hiện có.</p><label>Câu lệnh SQL<textarea id="sql" readonly spellcheck="false"></textarea></label><button id="copy" type="button">Sao chép SQL</button><button id="clear" type="button">Xóa nội dung trên trang</button><small>Không chia sẻ câu lệnh này. Lưu mật khẩu bằng trình quản lý mật khẩu của anh.</small></section><p id="status" role="status" aria-live="polite"></p>
+</main><script>
+const el=id=>document.getElementById(id);
+const quote=value=>"'"+String(value).replaceAll("'","''")+"'";
+async function buildAdminSql(email,name,password){
+ if(password.length<12||password.length>256)throw Error('Mật khẩu phải có 12–256 ký tự.');
+ if(!email.trim()||!name.trim())throw Error('Cần email và tên hiển thị.');
+ const salt=crypto.getRandomValues(new Uint8Array(16));
+ const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
+ const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt,iterations:210000},key,256);
+ const b64=bytes=>btoa(String.fromCharCode(...bytes));
+ return 'INSERT INTO users (id,email,name,role,password_hash,password_salt) SELECT '+[crypto.randomUUID(),email.trim().toLowerCase(),name.trim(),'admin',b64(new Uint8Array(bits)),b64(salt)].map(quote).join(',')+" WHERE NOT EXISTS (SELECT 1 FROM users WHERE role='admin');";
+}
+el('form').addEventListener('submit',async event=>{
+ event.preventDefault();el('result').hidden=true;el('sql').value='';el('status').textContent='';
+ if(el('password').value!==el('confirm').value){el('status').textContent='Hai mật khẩu chưa khớp.';return;}
+ el('generate').disabled=true;
+ try{el('sql').value=await buildAdminSql(el('email').value,el('name').value,el('password').value);el('result').hidden=false;el('password').value='';el('confirm').value='';el('status').textContent='Đã tạo SQL. Chưa tạo tài khoản trong database.';}catch(error){el('status').textContent=error.message||'Không tạo được SQL. Hãy mở trang bằng HTTPS.';}finally{el('generate').disabled=false;}
+});
+el('copy').onclick=async()=>{try{await navigator.clipboard.writeText(el('sql').value);el('status').textContent='Đã sao chép. Dán vào Console của pk-laser-os-v2.';}catch{el('sql').focus();el('sql').select();el('status').textContent='Nhấn giữ vùng SQL và chọn Sao chép.';}};
+el('clear').onclick=()=>{el('form').reset();el('sql').value='';el('result').hidden=true;el('status').textContent='Đã xóa nội dung trang. Nếu đã sao chép, hãy xóa SQL khỏi clipboard khi hoàn tất.';};
+</script></body></html>
