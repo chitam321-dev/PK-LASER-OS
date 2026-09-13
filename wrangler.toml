@@ -4,6 +4,6 @@ pages_build_output_dir = "public"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "pk-laser-os"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_name = "pk-laser-os-v2"
+database_id = "80e71626-2914-4064-91fa-497f8c8c26a3"
 migrations_dir = "migrations"
