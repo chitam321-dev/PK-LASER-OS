@@ -1,0 +1,9 @@
+name = "pk-laser-os"
+compatibility_date = "2026-09-01"
+pages_build_output_dir = "public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pk-laser-os-v2"
+database_id = "80e71626-2914-4064-91fa-497f8c8c26a3"
+migrations_dir = "migrations"

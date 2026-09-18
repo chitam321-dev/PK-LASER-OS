@@ -3,8 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "npm run check && npm test && npm run build:worker",
+    "build:worker": "wrangler pages functions build functions --outdir .worker --project-directory .",
     "check": "node --check public/app.js && find functions -name '*.js' -print0 | xargs -0 -n1 node --check",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "deploy:pages": "wrangler pages deploy public --project-name pk-laser-os --config wrangler.pages.toml",
+    "deploy:worker": "npm run build && wrangler deploy --config wrangler.toml"
   },
   "dependencies": {
     "qrcode": "^1.5.4"

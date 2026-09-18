@@ -53,7 +53,11 @@ node tools/create-admin.mjs admin@your-domain.vn "PK LASER Admin" "YOUR-STRONG-P
 ```
 
 5. Execute the printed SQL against production D1.
-6. Deploy the repository as a Cloudflare Pages project with `public` as the output directory and D1 binding `DB`.
+6. Keep the two Cloudflare deployment targets explicit:
+   - Pages: build command `npm run check && npm test`, output directory `public`, config `wrangler.pages.toml`, D1 binding `DB`.
+   - Workers: build command `npm run build`, deploy command `npx wrangler deploy --config wrangler.toml`. The build compiles the same Pages Functions routes into `.worker/index.js`, while Workers static assets come from `public`.
+
+The two targets therefore share the same authentication, D1 schema and AI diagnostic source code. Do not copy API handlers into a separate Worker implementation.
 
 ## AI API example
 
