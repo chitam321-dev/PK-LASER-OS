@@ -24,3 +24,5 @@ jobs:
         run: npm run build
         env:
           SESSION_SECRET: ci-only-session-secret-value-with-at-least-32-chars
+      - name: Dependency security audit
+        run: npm audit --audit-level=high
