@@ -4,7 +4,7 @@ import { readSession } from "@/lib/session";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const allowedHosts = new Set(["pklaser.vn", "www.pklaser.vn"]);
+const allowedHosts = new Set(["pklaser.vn"]);
 
 export async function GET(request: NextRequest) {
   const session = await readSession();
@@ -23,12 +23,15 @@ export async function GET(request: NextRequest) {
   if (
     target.protocol !== "https:" ||
     !allowedHosts.has(target.hostname.toLowerCase()) ||
+    target.pathname !== "/" ||
+    target.search ||
+    target.hash ||
     target.username ||
     target.password ||
     target.port
   ) {
     return NextResponse.json(
-      { error: "Chỉ cho phép kiểm tra URL HTTPS thuộc pklaser.vn." },
+      { error: "Bản đầu chỉ cho phép kiểm tra trang chủ HTTPS https://pklaser.vn/." },
       { status: 400 },
     );
   }
