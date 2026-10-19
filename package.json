@@ -11,7 +11,8 @@
     "test:ai-policy": "tsx --test src/lib/ai/policy.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed-admin": "tsx scripts/seed-admin.ts"
+    "db:seed-admin": "tsx scripts/seed-admin.ts",
+    "test:knowledge-contracts": "tsx --test src/lib/knowledge/ingestion-contracts.test.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.0.1",
