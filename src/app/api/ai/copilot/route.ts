@@ -41,6 +41,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Vui lòng đăng nhập để sử dụng PK LASER OS Copilot." }, { status: 401 });
   }
 
+  // Reject obviously oversized JSON before parsing it. The schema below remains the
+  // authoritative character limit; this guard also bounds JSON overhead on the wire.
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > 20_000) {
+    return NextResponse.json({ error: "Yêu cầu quá lớn. Vui lòng giới hạn câu hỏi trong 4.000 ký tự." }, {
+      status: 413,
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
+
   let raw: unknown;
   try {
     raw = await request.json();
