@@ -1,7 +1,7 @@
 import { jwtVerify } from "jose";
 import { NextRequest, NextResponse } from "next/server";
 
-const protectedRoutes = ["/dashboard", "/machines", "/tickets", "/inventory", "/sales"];
+const protectedRoutes = ["/dashboard", "/machines", "/tickets", "/inventory", "/sales", "/marketing"];
 
 function sessionKey() {
   const secret = process.env.SESSION_SECRET;
@@ -20,7 +20,11 @@ export async function proxy(request: NextRequest) {
   if (!token || !key) return NextResponse.redirect(new URL("/login", request.url));
 
   try {
-    await jwtVerify(token, key);
+    const { payload } = await jwtVerify(token, key);
+    if (request.nextUrl.pathname.startsWith("/marketing") &&
+        !["admin", "sales"].includes(String(payload.role))) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
     return NextResponse.next();
   } catch {
     const response = NextResponse.redirect(new URL("/login", request.url));
@@ -30,5 +34,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/machines/:path*", "/tickets/:path*", "/inventory/:path*", "/sales/:path*"],
+  matcher: ["/dashboard/:path*", "/machines/:path*", "/tickets/:path*", "/inventory/:path*", "/sales/:path*", "/marketing/:path*"],
 };
