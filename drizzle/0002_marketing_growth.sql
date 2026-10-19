@@ -1,7 +1,10 @@
 CREATE TYPE "public"."marketing_campaign_status" AS ENUM('draft', 'planned', 'active', 'paused', 'completed');
+--> statement-breakpoint
 CREATE TYPE "public"."content_status" AS ENUM('idea', 'draft', 'review', 'approved', 'scheduled', 'published', 'archived');
+--> statement-breakpoint
 CREATE TYPE "public"."lead_status" AS ENUM('new', 'qualified', 'contacted', 'quoted', 'won', 'lost', 'unsubscribed');
 
+--> statement-breakpoint
 CREATE TABLE "marketing_campaigns" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "name" varchar(180) NOT NULL,
@@ -18,6 +21,7 @@ CREATE TABLE "marketing_campaigns" (
   "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
+--> statement-breakpoint
 CREATE TABLE "content_items" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "title" varchar(220) NOT NULL,
@@ -37,6 +41,7 @@ CREATE TABLE "content_items" (
   "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
+--> statement-breakpoint
 CREATE TABLE "leads" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "name" varchar(180) NOT NULL,
@@ -63,12 +68,18 @@ CREATE TABLE "leads" (
   "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
+--> statement-breakpoint
 CREATE INDEX "leads_status_created_at_idx" ON "leads" ("status", "created_at");
+--> statement-breakpoint
 CREATE INDEX "leads_email_idx" ON "leads" ("email");
+--> statement-breakpoint
 CREATE INDEX "leads_phone_idx" ON "leads" ("phone");
+--> statement-breakpoint
 CREATE INDEX "campaigns_status_idx" ON "marketing_campaigns" ("status");
+--> statement-breakpoint
 CREATE INDEX "content_status_schedule_idx" ON "content_items" ("status", "scheduled_at");
 
+--> statement-breakpoint
 CREATE TABLE "api_usage_daily" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "provider" varchar(100) NOT NULL,
@@ -79,4 +90,5 @@ CREATE TABLE "api_usage_daily" (
   "quota_limit" integer,
   "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
+--> statement-breakpoint
 CREATE UNIQUE INDEX "api_usage_provider_endpoint_date_idx" ON "api_usage_daily" ("provider", "endpoint", "usage_date");
