@@ -5,7 +5,7 @@ import { getDb } from "@/db";
 import { contentItems, leads, marketingCampaigns } from "@/db/schema";
 import { readSession } from "@/lib/session";
 import { logout } from "../dashboard/actions";
-import { createCampaign, createContentDraft } from "./actions";
+import { createCampaign, createContentDraft, createLead } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -45,16 +45,19 @@ export default async function MarketingPage() {
   if (session.role === "technical") redirect("/dashboard");
 
   let metrics = { leads: 0, newLeads: 0, campaigns: 0, contentDrafts: 0, connected: false };
+  let recentLeads: Array<{ name: string; company: string | null; productInterest: string | null; status: string }> = [];
   let recentCampaigns: Array<{ name: string; channel: string; status: string }> = [];
   let recentContent: Array<{ title: string; channel: string; status: string }> = [];
 
   try {
     const db = getDb();
-    const [leadTotal, newLeadTotal, campaignTotal, draftTotal, campaignRows, contentRows] = await Promise.all([
+    const [leadTotal, newLeadTotal, campaignTotal, draftTotal, leadRows, campaignRows, contentRows] = await Promise.all([
       db.select({ value: count() }).from(leads),
       db.select({ value: count() }).from(leads).where(eq(leads.status, "new")),
       db.select({ value: count() }).from(marketingCampaigns),
       db.select({ value: count() }).from(contentItems).where(eq(contentItems.status, "draft")),
+      db.select({ name: leads.name, company: leads.company, productInterest: leads.productInterest, status: leads.status })
+        .from(leads).orderBy(desc(leads.createdAt)).limit(5),
       db.select({ name: marketingCampaigns.name, channel: marketingCampaigns.channel, status: marketingCampaigns.status })
         .from(marketingCampaigns).orderBy(desc(marketingCampaigns.createdAt)).limit(5),
       db.select({ title: contentItems.title, channel: contentItems.channel, status: contentItems.status })
@@ -67,6 +70,7 @@ export default async function MarketingPage() {
       contentDrafts: draftTotal[0]?.value ?? 0,
       connected: true,
     };
+    recentLeads = leadRows;
     recentCampaigns = campaignRows;
     recentContent = contentRows;
   } catch {
@@ -104,6 +108,44 @@ export default async function MarketingPage() {
         <article className="card"><p>Lead mới</p><strong>{metrics.newLeads}</strong><small>Cần được phân loại và phản hồi</small></article>
         <article className="card"><p>Chiến dịch</p><strong>{metrics.campaigns}</strong><small>Quản lý UTM và mục tiêu</small></article>
         <article className="card"><p>Bản nháp nội dung</p><strong>{metrics.contentDrafts}</strong><small>Chờ hoàn thiện và duyệt</small></article>
+      </section>
+
+      <section className="grid" style={{ marginTop: 28, alignItems: "start" }}>
+        <article className="card">
+          <p className="eyebrow">LEAD INTAKE</p>
+          <h2>Ghi nhận khách hàng tiềm năng</h2>
+          <p className="subtitle">Dành cho lead đã có nguồn hợp lệ. Chỉ xác nhận đồng ý liên hệ khi khách thực sự cho phép.</p>
+          <form action={createLead} style={formStyle}>
+            <label style={labelStyle}>Tên người liên hệ<input name="name" minLength={2} maxLength={180} required style={fieldStyle} /></label>
+            <label style={labelStyle}>Doanh nghiệp<input name="company" maxLength={200} style={fieldStyle} /></label>
+            <div className="grid">
+              <label style={labelStyle}>Email<input name="email" type="email" maxLength={254} style={fieldStyle} /></label>
+              <label style={labelStyle}>Điện thoại<input name="phone" type="tel" maxLength={40} style={fieldStyle} /></label>
+            </div>
+            <label style={labelStyle}>Tỉnh/thành<input name="province" maxLength={100} style={fieldStyle} /></label>
+            <label style={labelStyle}>Sản phẩm quan tâm<input name="productInterest" maxLength={180} style={fieldStyle} placeholder="Máy cắt laser, thấu kính, nozzle..." /></label>
+            <label style={labelStyle}>Nhu cầu<textarea name="requirement" maxLength={3000} style={fieldStyle} rows={2} /></label>
+            <div className="grid">
+              <label style={labelStyle}>Nguồn<input name="source" maxLength={120} style={fieldStyle} placeholder="website, referral..." /></label>
+              <label style={labelStyle}>Medium<input name="medium" maxLength={120} style={fieldStyle} placeholder="organic, social..." /></label>
+            </div>
+            <label style={labelStyle}>Chiến dịch<input name="campaign" maxLength={180} style={fieldStyle} /></label>
+            <label style={{ display: "flex", alignItems: "start", gap: 10, color: "#c7ccd3", fontSize: 13 }}>
+              <input name="consentToContact" type="checkbox" required style={{ marginTop: 3 }} />
+              Đã có căn cứ hợp lệ để PK LASER liên hệ khách về yêu cầu sản phẩm/dịch vụ này.
+            </label>
+            <button className="primary-button" type="submit">Lưu lead</button>
+          </form>
+        </article>
+        <article className="card">
+          <p className="eyebrow">LEAD GẦN ĐÂY</p>
+          <h2>Pipeline khách hàng</h2>
+          {recentLeads.length === 0 ? <p className="subtitle">Chưa có lead nào được ghi nhận.</p> : recentLeads.map((item) => (
+            <div key={item.name + item.status} style={{ padding: "12px 0", borderBottom: "1px solid var(--line)" }}>
+              <strong>{item.name}</strong><p className="subtitle">{item.company || "Chưa nhập doanh nghiệp"} · {item.productInterest || "Chưa phân loại"} · {item.status}</p>
+            </div>
+          ))}
+        </article>
       </section>
 
       <section className="grid" style={{ marginTop: 28, alignItems: "start" }}>
