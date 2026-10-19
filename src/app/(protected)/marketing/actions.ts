@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDb } from "@/db";
-import { contentItems, marketingCampaigns } from "@/db/schema";
+import { contentItems, leads, marketingCampaigns } from "@/db/schema";
 import { readSession } from "@/lib/session";
 
 const campaignSchema = z.object({
@@ -15,6 +15,20 @@ const campaignSchema = z.object({
   utmMedium: z.string().trim().max(120).optional(),
   utmCampaign: z.string().trim().max(180).optional(),
 });
+
+const leadSchema = z.object({
+  name: z.string().trim().min(2).max(180),
+  company: z.string().trim().max(200).optional(),
+  email: z.string().trim().email().max(254).or(z.literal("")).optional(),
+  phone: z.string().trim().max(40).optional(),
+  province: z.string().trim().max(100).optional(),
+  productInterest: z.string().trim().max(180).optional(),
+  requirement: z.string().trim().max(3000).optional(),
+  source: z.string().trim().max(120).optional(),
+  medium: z.string().trim().max(120).optional(),
+  campaign: z.string().trim().max(180).optional(),
+  consentToContact: z.literal("on"),
+}).refine((data) => Boolean(data.email || data.phone), { message: "Cần có email hoặc số điện thoại." });
 
 const contentSchema = z.object({
   title: z.string().trim().min(3).max(220),
@@ -78,6 +92,44 @@ export async function createContentDraft(formData: FormData) {
     sourceNotes: parsed.data.sourceNotes,
     status: "draft",
     createdBy: session.userId,
+  });
+  revalidatePath("/marketing");
+}
+
+
+export async function createLead(formData: FormData) {
+  await requireMarketingAccess();
+  const parsed = leadSchema.safeParse({
+    name: formData.get("name"),
+    company: formData.get("company") || undefined,
+    email: formData.get("email") || "",
+    phone: formData.get("phone") || undefined,
+    province: formData.get("province") || undefined,
+    productInterest: formData.get("productInterest") || undefined,
+    requirement: formData.get("requirement") || undefined,
+    source: formData.get("source") || undefined,
+    medium: formData.get("medium") || undefined,
+    campaign: formData.get("campaign") || undefined,
+    consentToContact: formData.get("consentToContact"),
+  });
+  if (!parsed.success) throw new Error("Thông tin lead chưa hợp lệ; cần tên, email hoặc điện thoại và xác nhận quyền liên hệ.");
+
+  const now = new Date();
+  await getDb().insert(leads).values({
+    name: parsed.data.name,
+    company: parsed.data.company,
+    email: parsed.data.email || null,
+    phone: parsed.data.phone,
+    province: parsed.data.province,
+    productInterest: parsed.data.productInterest,
+    requirement: parsed.data.requirement,
+    source: parsed.data.source || "internal",
+    medium: parsed.data.medium || "manual",
+    campaign: parsed.data.campaign,
+    consentToContact: true,
+    consentPurpose: "Respond to product or service inquiry",
+    consentPolicyVersion: "2026-10-v1",
+    consentCapturedAt: now,
   });
   revalidatePath("/marketing");
 }
