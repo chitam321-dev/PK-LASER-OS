@@ -75,9 +75,17 @@ export const extractedKnowledgeItemSchema = z.object({
   approvalStatus: z.enum(["pending", "approved", "rejected"]).default("pending"),
 });
 
+export const knowledgeSourceProviderSchema = z.enum(["direct_upload", "google_drive"]);
+
 export const ingestionJobSchema = z.object({
   jobId: z.string().uuid(),
   sourceDocumentId: z.string().uuid(),
+  sourceProvider: knowledgeSourceProviderSchema.default("direct_upload"),
+  // Google Drive IDs/revisions are provenance only; never treat a webViewLink as an access token.
+  driveFileId: z.string().trim().min(1).max(256).optional(),
+  driveRevisionId: z.string().trim().min(1).max(256).optional(),
+  driveMimeType: z.string().trim().min(1).max(160).optional(),
+  driveModifiedTime: z.string().datetime().optional(),
   originalFilename: z.string().trim().min(1).max(255),
   fileType: knowledgeFileTypeSchema,
   sha256: z.string().regex(/^[a-f0-9]{64}$/i),
