@@ -45,9 +45,9 @@ export default async function MarketingPage() {
   if (session.role === "technical") redirect("/dashboard");
 
   let metrics = { leads: 0, newLeads: 0, campaigns: 0, contentDrafts: 0, connected: false };
-  let recentLeads: Array<{ name: string; company: string | null; productInterest: string | null; status: string }> = [];
-  let recentCampaigns: Array<{ name: string; channel: string; status: string }> = [];
-  let recentContent: Array<{ title: string; channel: string; status: string }> = [];
+  let recentLeads: Array<{ id: string; name: string; company: string | null; productInterest: string | null; status: string }> = [];
+  let recentCampaigns: Array<{ id: string; name: string; channel: string; status: string }> = [];
+  let recentContent: Array<{ id: string; title: string; channel: string; status: string }> = [];
 
   try {
     const db = getDb();
@@ -56,11 +56,11 @@ export default async function MarketingPage() {
       db.select({ value: count() }).from(leads).where(eq(leads.status, "new")),
       db.select({ value: count() }).from(marketingCampaigns),
       db.select({ value: count() }).from(contentItems).where(eq(contentItems.status, "draft")),
-      db.select({ name: leads.name, company: leads.company, productInterest: leads.productInterest, status: leads.status })
+      db.select({ id: leads.id, name: leads.name, company: leads.company, productInterest: leads.productInterest, status: leads.status })
         .from(leads).orderBy(desc(leads.createdAt)).limit(5),
-      db.select({ name: marketingCampaigns.name, channel: marketingCampaigns.channel, status: marketingCampaigns.status })
+      db.select({ id: marketingCampaigns.id, name: marketingCampaigns.name, channel: marketingCampaigns.channel, status: marketingCampaigns.status })
         .from(marketingCampaigns).orderBy(desc(marketingCampaigns.createdAt)).limit(5),
-      db.select({ title: contentItems.title, channel: contentItems.channel, status: contentItems.status })
+      db.select({ id: contentItems.id, title: contentItems.title, channel: contentItems.channel, status: contentItems.status })
         .from(contentItems).orderBy(desc(contentItems.createdAt)).limit(5),
     ]);
     metrics = {
@@ -141,7 +141,7 @@ export default async function MarketingPage() {
           <p className="eyebrow">LEAD GẦN ĐÂY</p>
           <h2>Pipeline khách hàng</h2>
           {recentLeads.length === 0 ? <p className="subtitle">Chưa có lead nào được ghi nhận.</p> : recentLeads.map((item) => (
-            <div key={item.name + item.status} style={{ padding: "12px 0", borderBottom: "1px solid var(--line)" }}>
+            <div key={item.id} style={{ padding: "12px 0", borderBottom: "1px solid var(--line)" }}>
               <strong>{item.name}</strong><p className="subtitle">{item.company || "Chưa nhập doanh nghiệp"} · {item.productInterest || "Chưa phân loại"} · {item.status}</p>
             </div>
           ))}
