@@ -67,6 +67,10 @@ Generate source-grounded content drafts and campaign experiments. Publishing and
 - Provide a kill switch and a human escalation path.
 - Do not train on customer data or add data to durable memory without a documented purpose and retention policy.
 
+## Document ingestion and knowledge pipeline
+
+The proposed upload workflow for PDF, DOCX and Excel files is specified in [`knowledge-ingestion-pipeline.md`](./knowledge-ingestion-pipeline.md). Shared Zod contracts for ingestion jobs, source locations and extracted knowledge items live in `src/lib/knowledge/ingestion-contracts.ts`. These are contracts only: upload UI, parsers, private object storage, asynchronous processing, review endpoints and retrieval are not implemented yet.
+
 ## Data architecture decision gate
 
 The Next.js branch currently declares Neon/PostgreSQL through Drizzle. Prior project notes also mention a Cloudflare Worker/D1 CRM. The canonical source of truth is not yet verified. Do not add AI memory tables, vector tables, event tables or dual writes until the database owner, environment mapping, schema inventory, backup/restore and migration baseline are confirmed. Start knowledge retrieval with a read-only adapter over an approved staging dataset.
