@@ -232,8 +232,10 @@ export default async function MarketingPage() {
       <section style={{ marginTop: 28 }} className="card">
         <p className="eyebrow">TÍCH HỢP API</p>
         <h2>Ưu tiên kết nối</h2>
-        <p className="subtitle">1. Google Search Console · 2. PageSpeed Insights · 3. Telegram Bot API · 4. Google Analytics · 5. YouTube / Meta / Zalo OA theo quyền được cấp.</p>
-        <p className="subtitle">Hiện chưa có API key, chưa gửi chiến dịch và chưa tự động đăng bài. Nội dung cần được con người duyệt trước khi xuất bản.</p>
+        <p className="subtitle">1. PageSpeed Insights đang là tích hợp API đầu tiên; tiếp theo là Search Console, Telegram, Analytics, YouTube, Meta và Zalo OA theo quyền được cấp.</p>
+        <p className="subtitle">Bản kiểm tra PageSpeed chỉ cho phép URL thuộc pklaser.vn, có xác thực người dùng và cache kết quả 1 giờ.</p>
+        <p><Link className="ghost-button" href="/api/marketing/pagespeed?url=https%3A%2F%2Fpklaser.vn%2F" target="_blank" rel="noreferrer">Chạy kiểm tra PageSpeed cho pklaser.vn ↗</Link></p>
+        <p className="subtitle">Chưa gửi chiến dịch và chưa tự động đăng bài. Nội dung cần được con người duyệt trước khi xuất bản.</p>
       </section>
     </main>
   );
