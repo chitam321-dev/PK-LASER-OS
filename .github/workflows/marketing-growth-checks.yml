@@ -18,6 +18,8 @@ jobs:
         run: npm install
       - name: AI contracts and policy tests
         run: npm run test:ai-policy
+      - name: Knowledge ingestion contract tests
+        run: npm run test:knowledge-contracts
       - name: Type check
         run: npm run typecheck
       - name: Lint
