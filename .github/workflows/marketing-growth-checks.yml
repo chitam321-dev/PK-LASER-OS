@@ -1,0 +1,27 @@
+name: Marketing Growth Checks
+
+on:
+  pull_request:
+    branches: [main, codex/production-foundation]
+  push:
+    branches: [feature/marketing-growth-engine]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm install
+      - name: Type check
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Production build
+        run: npm run build
+        env:
+          SESSION_SECRET: ci-only-session-secret-value-with-at-least-32-chars
