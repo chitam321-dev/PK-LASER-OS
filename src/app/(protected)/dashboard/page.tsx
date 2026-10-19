@@ -18,6 +18,7 @@ export default async function DashboardPage() {
       <header className="topbar">
         <div className="brand"><span>PK</span> LASER OS</div>
         <nav style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          <Link href="/ai">AI Copilot</Link>
           {session.role !== "technical" && <Link href="/marketing">Marketing</Link>}
           <form action={logout}><button className="ghost-button">Đăng xuất</button></form>
         </nav>
