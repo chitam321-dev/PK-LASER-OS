@@ -16,6 +16,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: AI contracts and policy tests
+        run: npm run test:ai-policy
       - name: Type check
         run: npm run typecheck
       - name: Lint
