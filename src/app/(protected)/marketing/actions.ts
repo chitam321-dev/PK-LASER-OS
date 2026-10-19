@@ -76,7 +76,7 @@ export async function createContentDraft(formData: FormData) {
     topic: parsed.data.topic,
     callToAction: parsed.data.callToAction,
     sourceNotes: parsed.data.sourceNotes,
-    status: "idea",
+    status: "draft",
     createdBy: session.userId,
   });
   revalidatePath("/marketing");
