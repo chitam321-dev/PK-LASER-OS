@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { readSession } from "@/lib/session";
 import { logout } from "./actions";
@@ -16,7 +17,10 @@ export default async function DashboardPage() {
     <main>
       <header className="topbar">
         <div className="brand"><span>PK</span> LASER OS</div>
-        <form action={logout}><button className="ghost-button">Đăng xuất</button></form>
+        <nav style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          {session.role !== "technical" && <Link href="/marketing">Marketing</Link>}
+          <form action={logout}><button className="ghost-button">Đăng xuất</button></form>
+        </nav>
       </header>
       <section className="dashboard-heading">
         <div>
