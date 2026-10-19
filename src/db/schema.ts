@@ -2,10 +2,12 @@ import {
   boolean,
   date,
   integer,
+  index,
   pgEnum,
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -99,7 +101,7 @@ export const marketingCampaigns = pgTable("marketing_campaigns", {
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
-});
+}, (table) => [index("campaigns_status_idx").on(table.status)]);
 
 export const contentItems = pgTable("content_items", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -121,7 +123,7 @@ export const contentItems = pgTable("content_items", {
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
-});
+}, (table) => [index("content_status_schedule_idx").on(table.status, table.scheduledAt)]);
 
 export const leads = pgTable("leads", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -150,7 +152,11 @@ export const leads = pgTable("leads", {
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
-});
+}, (table) => [
+  index("leads_status_created_at_idx").on(table.status, table.createdAt),
+  index("leads_email_idx").on(table.email),
+  index("leads_phone_idx").on(table.phone),
+]);
 
 export const apiUsageDaily = pgTable("api_usage_daily", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -161,4 +167,4 @@ export const apiUsageDaily = pgTable("api_usage_daily", {
   errorCount: integer("error_count").notNull().default(0),
   quotaLimit: integer("quota_limit"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [uniqueIndex("api_usage_provider_endpoint_date_idx").on(table.provider, table.endpoint, table.usageDate)]);
