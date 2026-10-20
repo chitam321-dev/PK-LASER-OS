@@ -9,7 +9,7 @@ GitHub Advisory Database entry [GHSA-vfj7-8cjw-p6xm](https://github.com/advisori
 
 `eslint-config-next → @next/eslint-plugin-next → fast-glob → micromatch → braces`
 
-This path starts in the development-only `eslint-config-next` dependency. The prior CI audit also reported a moderate `esbuild` advisory through `drizzle-kit → @esbuild-kit/esm-loader → @esbuild-kit/core-utils → esbuild`; this is a development-tool dependency and remains visible in full audit output.
+This path starts in the development-only `eslint-config-next` dependency. npm reports the direct finding and high-severity parent finding(s) whose audit path terminates at the same `braces` advisory. The prior CI audit also reported a moderate `esbuild` advisory through `drizzle-kit → @esbuild-kit/esm-loader → @esbuild-kit/core-utils → esbuild`; this is a development-tool dependency and remains visible in full audit output.
 
 ## Why the high finding is excepted
 
@@ -17,8 +17,8 @@ The repository uses the affected package through lint/build tooling, not applica
 
 ## CI enforcement
 
-CI still runs `npm audit --json` over the full dependency tree. The checker permits only the exact high advisory above, and only when `npm ls --omit=dev` verifies that `braces` is absent from the production dependency tree. It fails closed if that verification fails. Any other high/critical advisory, any occurrence of `braces` in production dependencies, or an audit parsing error fails CI. Low/moderate findings remain listed in the CI output under the existing high-severity release threshold.
+CI still runs `npm audit --json` over the full dependency tree. The checker follows npm's advisory dependency links and permits only the exact high advisory above and parent findings whose only high-severity path recursively leads to that advisory. It then checks every affected package name against the `npm ls --omit=dev` production tree. The check fails closed if that verification fails or if any affected package appears in production. Any other high/critical advisory or audit parsing error fails CI. Low/moderate findings remain listed in the CI output under the existing high-severity release threshold.
 
 ## Conditions for removal
 
-Remove this exception when the advisory is withdrawn or a patched `braces` release is available and adopted. Reassess earlier if dependency paths change, the package appears in production dependencies, or a release uses untrusted brace patterns in a runtime path. Do not use `npm audit fix --force` without reviewing its proposed major-version changes.
+Remove this exception when the advisory is withdrawn or a patched `braces` release is available and adopted. Reassess earlier if dependency paths change, any affected package appears in production dependencies, or a release uses untrusted brace patterns in a runtime path. Do not use `npm audit fix --force` without reviewing its proposed major-version changes.
