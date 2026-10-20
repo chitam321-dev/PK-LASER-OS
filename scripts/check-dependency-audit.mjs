@@ -17,27 +17,28 @@ const highOrCritical = vulnerabilities.filter((item) =>
   item.severity === "high" || item.severity === "critical"
 );
 
-function reachesApprovedBracesAdvisory(name, seen = new Set()) {
+function reachesOnlyApprovedBracesAdvisory(name, seen = new Set()) {
   if (seen.has(name)) return false;
-  seen.add(name);
+  const nextSeen = new Set(seen).add(name);
   const item = vulnerabilityByName.get(name);
-  if (!item) return false;
-  if (
-    name === "braces" &&
-    item.severity === "high" &&
-    item.via.some((entry) =>
-      typeof entry === "object" && entry.url === advisoryUrl
-    )
-  ) {
-    return true;
-  }
-  return item.via.some((entry) =>
-    typeof entry === "string" && reachesApprovedBracesAdvisory(entry, seen)
-  );
+  if (!item || item.via.length === 0) return false;
+
+  // Every path must terminate at the explicitly approved advisory. A package
+  // with one approved path and another unrelated advisory is not exempted.
+  return item.via.every((entry) => {
+    if (typeof entry === "string") {
+      return reachesOnlyApprovedBracesAdvisory(entry, nextSeen);
+    }
+    return (
+      name === "braces" &&
+      item.severity === "high" &&
+      entry.url === advisoryUrl
+    );
+  });
 }
 
 const approved = highOrCritical.filter((item) =>
-  reachesApprovedBracesAdvisory(item.name)
+  reachesOnlyApprovedBracesAdvisory(item.name)
 );
 const unapproved = highOrCritical.filter((item) => !approved.includes(item));
 
