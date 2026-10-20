@@ -20,8 +20,9 @@ export function LoginForm() {
 
   return (
     <form action={action} className="login-form">
+      <p>Đăng nhập bằng email và mật khẩu tài khoản PK LASER do quản trị viên cấp.</p>
       <label>
-        Email công việc
+        Email tài khoản
         <input name="email" type="email" autoComplete="username" required />
       </label>
       <label>

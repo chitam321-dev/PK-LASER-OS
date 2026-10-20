@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS "users" (
   "email" varchar(254) NOT NULL UNIQUE,
   "password_hash" text NOT NULL,
   "role" "user_role" DEFAULT 'sales' NOT NULL,
+  "is_active" boolean DEFAULT true NOT NULL,
+  "must_change_password" boolean DEFAULT false NOT NULL,
   "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint

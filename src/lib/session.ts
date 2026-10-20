@@ -1,5 +1,8 @@
+import { eq } from "drizzle-orm";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { getDb } from "@/db";
+import { users } from "@/db/schema";
 
 export type Role = "admin" | "technical" | "sales";
 
@@ -7,6 +10,7 @@ export type Session = {
   userId: string;
   name: string;
   role: Role;
+  mustChangePassword: boolean;
 };
 
 const COOKIE_NAME = "pk_session";
@@ -43,12 +47,29 @@ export async function readSession(): Promise<Session | null> {
 
   try {
     const { payload } = await jwtVerify(token, key());
-    if (
-      typeof payload.userId !== "string" ||
-      typeof payload.name !== "string" ||
-      !["admin", "technical", "sales"].includes(String(payload.role))
-    ) return null;
-    return payload as Session;
+    if (typeof payload.userId !== "string") return null;
+
+    const [user] = await getDb().select({
+      id: users.id,
+      name: users.name,
+      role: users.role,
+      isActive: users.isActive,
+      mustChangePassword: users.mustChangePassword,
+    }).from(users).where(eq(users.id, payload.userId)).limit(1);
+
+    if (!user || !user.isActive) {
+      await deleteSession();
+      return null;
+    }
+
+    // Read role and account status from the database so changes take effect
+    // immediately, even while an older session cookie is still valid.
+    return {
+      userId: user.id,
+      name: user.name,
+      role: user.role,
+      mustChangePassword: user.mustChangePassword,
+    };
   } catch {
     return null;
   }
