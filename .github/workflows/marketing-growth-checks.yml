@@ -20,6 +20,8 @@ jobs:
         run: npm run test:ai-policy
       - name: Knowledge ingestion contract tests
         run: npm run test:knowledge-contracts
+      - name: Google Drive token encryption tests
+        run: npm run test:google-drive-crypto
       - name: Type check
         run: npm run typecheck
       - name: Lint
