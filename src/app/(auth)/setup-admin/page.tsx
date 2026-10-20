@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { count, eq } from "drizzle-orm";
+import { count } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
