@@ -38,7 +38,7 @@ The SQL draft at `docs/migrations/20261020_google_drive_integration.sql` is not 
 2. Google prompts the admin to consent.
 3. Google redirects to `/api/integrations/google-drive/callback`.
 4. The callback validates one-time state, exchanges the code, verifies the account through Drive `about`, encrypts the token bundle, and stores it.
-5. Admin can inspect `GET /api/integrations/google-drive/status`.
+5. Admin can inspect connection state at `/settings/integrations` or through `GET /api/integrations/google-drive/status`.
 6. Admin can call `POST /api/integrations/google-drive/sync` to scan file metadata. This endpoint does not download contents.
 
 ## Limitations before production
