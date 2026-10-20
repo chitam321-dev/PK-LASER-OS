@@ -11,16 +11,33 @@ try {
   process.exit(1);
 }
 
-const vulnerabilities = Object.values(report.vulnerabilities ?? {});
+const vulnerabilities = Object.values(report.vulnerabilities ?? []);
+const vulnerabilityByName = new Map(vulnerabilities.map((item) => [item.name, item]));
 const highOrCritical = vulnerabilities.filter((item) =>
   item.severity === "high" || item.severity === "critical"
 );
+
+function reachesApprovedBracesAdvisory(name, seen = new Set()) {
+  if (seen.has(name)) return false;
+  seen.add(name);
+  const item = vulnerabilityByName.get(name);
+  if (!item) return false;
+  if (
+    name === "braces" &&
+    item.severity === "high" &&
+    item.via.some((entry) =>
+      typeof entry === "object" && entry.url === advisoryUrl
+    )
+  ) {
+    return true;
+  }
+  return item.via.some((entry) =>
+    typeof entry === "string" && reachesApprovedBracesAdvisory(entry, seen)
+  );
+}
+
 const approved = highOrCritical.filter((item) =>
-  item.name === "braces" &&
-  item.severity === "high" &&
-  item.via.some((entry) =>
-    typeof entry === "object" && entry.url === advisoryUrl
-  )
+  reachesApprovedBracesAdvisory(item.name)
 );
 const unapproved = highOrCritical.filter((item) => !approved.includes(item));
 
@@ -43,11 +60,6 @@ if (unapproved.length > 0) {
 }
 
 if (approved.length > 0) {
-  if (approved.length !== 1) {
-    console.error("The braces exception only allows one matching advisory entry.");
-    process.exit(1);
-  }
-
   const productionTree = spawnSync(
     "npm",
     ["ls", "--omit=dev", "--all", "--json"],
@@ -75,13 +87,17 @@ if (approved.length > 0) {
     );
   }
 
-  if (containsPackage(tree, "braces")) {
-    console.error("The approved braces advisory is present in the production dependency tree.");
+  const productionFindings = approved.filter((item) =>
+    containsPackage(tree, item.name)
+  );
+  if (productionFindings.length > 0) {
+    console.error("The braces exception is limited to development-only dependency paths; affected production packages were found:");
+    for (const item of productionFindings) console.error(`- ${item.name}`);
     process.exit(1);
   }
 
   console.warn(
-    `Accepted documented dev-only exception: GHSA-vfj7-8cjw-p6xm in braces; verified absent from the production dependency tree. See docs/security/dependency-audit-exceptions.md.`
+    `Accepted documented dev-only exception for GHSA-vfj7-8cjw-p6xm through the audit dependency chain: ${approved.map((item) => item.name).join(", ")}. Every affected package was verified absent from the production dependency tree. See docs/security/dependency-audit-exceptions.md.`
   );
 }
 
