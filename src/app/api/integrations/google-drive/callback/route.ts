@@ -25,7 +25,7 @@ function safeEqual(left: string, right: string): boolean {
 }
 
 function settingsRedirect(request: NextRequest, result: string) {
-  const url = new URL("/", request.url);
+  const url = new URL("/settings/integrations", request.url);
   url.searchParams.set("googleDrive", result);
   const response = NextResponse.redirect(url);
   response.cookies.set("pk_google_drive_oauth_state", "", { path: "/api/integrations/google-drive", maxAge: 0, httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax" });
