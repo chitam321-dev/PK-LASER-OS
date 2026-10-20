@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { readSession } from "@/lib/session";
-import { PasswordField } from "@/components/password-field";
+import { AdminPasswordFields } from "@/components/admin-password-fields";
 import { setupFirstAdmin } from "./actions";
 
 export default async function SetupAdminPage({
@@ -31,14 +31,7 @@ export default async function SetupAdminPage({
         <form action={setupFirstAdmin} className="login-form">
           <label htmlFor="name">Họ tên<input id="name" name="name" autoComplete="name" minLength={2} maxLength={160} required /></label>
           <label htmlFor="email">Email công việc<input id="email" name="email" type="email" autoComplete="email" maxLength={254} required /></label>
-          <div className="password-control">
-            <label htmlFor="password">Mật khẩu</label>
-            <PasswordField id="password" name="password" autoComplete="new-password" minLength={12} maxLength={128} />
-          </div>
-          <div className="password-control">
-            <label htmlFor="confirmation">Nhập lại mật khẩu</label>
-            <PasswordField id="confirmation" name="confirmation" autoComplete="new-password" minLength={12} maxLength={128} />
-          </div>
+          <AdminPasswordFields />
           <label htmlFor="token">Mã thiết lập một lần<input id="token" name="token" type="password" autoComplete="off" required /></label>
           <button className="primary-button" type="submit">Tạo tài khoản quản trị</button>
         </form>
