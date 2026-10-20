@@ -1,11 +1,11 @@
 import { randomBytes } from "node:crypto";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { readSession } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const session = await readSession();
   if (!session) {
     return NextResponse.json({ error: "Vui lòng đăng nhập." }, { status: 401 });
