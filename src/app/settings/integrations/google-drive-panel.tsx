@@ -42,8 +42,24 @@ export default function GoogleDrivePanel() {
   }, []);
 
   useEffect(() => {
-    void refreshStatus();
-  }, [refreshStatus]);
+    let active = true;
+    void fetch("/api/integrations/google-drive/status", { cache: "no-store" })
+      .then(async (response) => ({
+        response,
+        data: await response.json() as ConnectionStatus,
+      }))
+      .then(({ response, data }) => {
+        if (active) {
+          setStatus(response.ok ? data : { connected: false, error: data.error ?? "Không đọc được trạng thái." });
+        }
+      })
+      .catch(() => {
+        if (active) setStatus({ connected: false, error: "Không thể kết nối tới API trạng thái." });
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function syncMetadata() {
     setBusy(true);
