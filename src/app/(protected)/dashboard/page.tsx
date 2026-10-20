@@ -20,6 +20,7 @@ export default async function DashboardPage() {
         <nav style={{ display: "flex", gap: 16, alignItems: "center" }}>
           <Link href="/ai">AI Copilot</Link>
           {session.role !== "technical" && <Link href="/marketing">Marketing</Link>}
+          {session.role === "admin" && <Link href="/users">Tài khoản và phân quyền</Link>}
           <form action={logout}><button className="ghost-button">Đăng xuất</button></form>
         </nav>
       </header>
