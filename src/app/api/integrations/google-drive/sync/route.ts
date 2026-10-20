@@ -67,6 +67,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Yêu cầu quá lớn." }, { status: 413 });
   }
 
+  let initialPageToken: string | undefined;
+  if (contentLength > 0) {
+    try {
+      const body = await request.json() as { pageToken?: unknown };
+      if (body.pageToken !== undefined &&
+          (typeof body.pageToken !== "string" || body.pageToken.length > 4_096)) {
+        return NextResponse.json({ error: "pageToken không hợp lệ." }, { status: 400 });
+      }
+      initialPageToken = body.pageToken as string | undefined;
+    } catch {
+      return NextResponse.json({ error: "Nội dung yêu cầu phải là JSON hợp lệ." }, { status: 400 });
+    }
+  }
+
   try {
     const db = getDb();
     const [connection] = await db.select().from(googleDriveConnections)
@@ -82,7 +96,7 @@ export async function POST(request: NextRequest) {
     }).where(eq(googleDriveConnections.id, connection.id));
 
     const syncedAt = new Date();
-    let pageToken: string | undefined;
+    let pageToken: string | undefined = initialPageToken;
     let scanned = 0;
     let upserted = 0;
     const maxFilesPerRun = 5_000;
@@ -143,6 +157,7 @@ export async function POST(request: NextRequest) {
       scanned,
       upserted,
       truncated: Boolean(pageToken),
+      nextPageToken: pageToken ?? null,
       nextStep: "Đây mới là đồng bộ metadata; chưa tải nội dung, chưa trích xuất và chưa đưa bất kỳ tài liệu nào vào AI.",
       approvalRequiredBeforeAiUse: true,
       syncedAt: syncedAt.toISOString(),
