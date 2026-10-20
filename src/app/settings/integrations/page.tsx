@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { readSession } from "@/lib/session";
 import GoogleDrivePanel from "./google-drive-panel";
 
@@ -20,7 +21,7 @@ export default async function IntegrationsSettingsPage() {
             Kết nối Drive ở chế độ chỉ đọc. Đồng bộ metadata trước; tài liệu chưa được tự động đưa vào kho tri thức AI.
           </p>
         </div>
-        <a className="ghost-button" href="/">Về trang chính</a>
+        <Link className="ghost-button" href="/">Về trang chính</Link>
       </section>
       {!session ? (
         <section className="card">
