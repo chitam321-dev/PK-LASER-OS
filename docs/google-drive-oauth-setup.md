@@ -5,7 +5,7 @@
 - OAuth scope is `https://www.googleapis.com/auth/drive.readonly`, plus `openid email` to identify the connected account.
 - Only a signed-in `admin` role can start OAuth, view connection status, or trigger manual metadata sync.
 - Access and refresh tokens are encrypted with AES-256-GCM before they are stored in PostgreSQL.
-- The sync endpoint lists metadata for non-trashed files across the connected Drive, up to 5,000 files per request. If more remain, it reports `truncated: true`; run sync again to continue.
+- The sync endpoint lists metadata for non-trashed files across the connected Drive, up to 5,000 files per request. If more remain, it returns `truncated: true` and `nextPageToken`; send that token as `{ "pageToken": "..." }` in the next POST request to continue.
 - A changed Drive revision resets the metadata record's review state to `pending`.
 - This implementation synchronizes file metadata only. It does not download document contents, extract text, build embeddings, or make files available to AI. Those steps require the approved ingestion worker and a human review UI.
 - Never enable AI retrieval from these metadata records. Only separately extracted and explicitly approved knowledge items may be used by AI.
@@ -49,4 +49,4 @@ The SQL draft at `docs/migrations/20261020_google_drive_integration.sql` is not 
 - Implement document-content ingestion in a sandbox, malware/ZIP-bomb limits, parser limits, deletion/retention handling, and the human review UI.
 - Test revoked consent, missing refresh token, token expiry, large Drives, API quota errors, and concurrent syncs.
 - Review OAuth token rotation and account disconnect/revocation behavior.
-- The current sync uses a 5,000-file cap per request and has no persisted page cursor. Repeated runs begin at the start; implement a persisted cursor before using it on very large Drives.
+- The sync supports caller-supplied pagination tokens but does not yet persist a long-running sync job. Keep the returned page token private and continue until `truncated` is false.
