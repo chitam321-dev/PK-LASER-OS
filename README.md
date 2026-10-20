@@ -11,6 +11,17 @@ Nền tảng quản trị vận hành dành cho Công ty Cổ phần PK LASER.
 - CRM, doanh số và KPI
 - Dashboard quản trị và dữ liệu vận hành
 
+## Khởi tạo tài khoản quản trị đầu tiên
+
+Sau khi cấu hình `DATABASE_URL`, `SESSION_SECRET` và áp dụng migration đã được duyệt:
+
+1. Đặt biến `ADMIN_BOOTSTRAP_TOKEN` thành một chuỗi bí mật ngẫu nhiên trong môi trường máy chủ.
+2. Mở `/setup-admin`, nhập mã thiết lập và thông tin tài khoản quản trị đầu tiên.
+3. Đăng nhập; trang thiết lập tự đóng sau khi có tài khoản đầu tiên.
+4. Xóa biến `ADMIN_BOOTSTRAP_TOKEN` khỏi môi trường máy chủ.
+
+Tài khoản quản trị vào mục **Tài khoản và phân quyền** để tạo tài khoản nhân viên, gán vai trò, khóa/mở tài khoản và đặt lại mật khẩu. Mật khẩu khởi tạo/đặt lại tối thiểu 12 ký tự và bắt buộc đổi khi đăng nhập.
+
 ## Chạy cục bộ
 
 ```bash
