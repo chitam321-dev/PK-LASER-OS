@@ -37,7 +37,7 @@ export async function login(
     return { error: "Không thể kết nối hệ thống. Vui lòng thử lại." };
   }
 
-  if (!user || !(await compare(input.data.password, user.passwordHash))) {
+  if (!user || !(await compare(input.data.password, user.passwordHash)) || !user.isActive) {
     return { error: "Email hoặc mật khẩu không chính xác." };
   }
 
@@ -45,7 +45,9 @@ export async function login(
     userId: user.id,
     name: user.name,
     role: user.role,
+    mustChangePassword: user.mustChangePassword,
   });
 
+  if (user.mustChangePassword) redirect("/change-password");
   redirect("/dashboard");
 }
