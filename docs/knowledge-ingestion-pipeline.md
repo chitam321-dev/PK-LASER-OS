@@ -1,13 +1,14 @@
 # PK LASER OS — Document Ingestion & Knowledge Pipeline
 
 ## Goal
-Provide a controlled upload-to-knowledge workflow for PDF, Word (.docx), and Excel (.xlsx/.xls) files. This pipeline is the source-ingestion layer for PK LASER Technical Brain. It must preserve original files and trace every normalized fact back to a source location.
+Provide a controlled Google Drive-to-knowledge workflow for PDF, Word (.docx), and Excel (.xlsx/.xls) files, with direct upload as a secondary source. This pipeline is the source-ingestion layer for PK LASER Technical Brain. It must preserve Drive file/revision provenance and trace every normalized fact back to a source location.
 
 ## User workflow
-1. An authenticated employee uploads one or more files in the Knowledge workspace.
-2. Validate file extension, MIME type, size, page/sheet count and actual file signature. Reject unsupported, encrypted or malformed files with a clear reason.
-3. Store the original in private object storage under a generated ID. Never expose a public file URL.
-4. Create an ingestion job with status `queued`; processing runs asynchronously and reports progress.
+1. An authorized employee selects files from an explicitly approved Google Drive folder, or uploads a file directly as a fallback.
+2. Use a least-privilege, read-only Drive integration. Record Drive file ID, revision ID, MIME type and modified time; do not treat a shared web link as authorization.
+3. Validate file extension, MIME type, size, page/sheet count and actual file signature. Reject unsupported, encrypted or malformed files with a clear reason.
+4. Store a private processing copy only if required by the approved architecture, under a generated ID. Never expose a public file URL.
+5. Create an ingestion job with status `queued`; processing runs asynchronously and reports progress.
 5. Extract text/tables with format-specific parsers. For scanned PDFs, mark `ocr_required` until an approved OCR service is configured; do not silently treat empty text as a successful parse.
 6. Normalize text, tables and units while preserving original value, source location and parser warnings.
 7. Classify the document (manual, alarm/error code, parts catalogue, SOP, price list, service report, contract, other). Classification is a suggestion, not a source of truth.
@@ -23,7 +24,7 @@ Provide a controlled upload-to-knowledge workflow for PDF, Word (.docx), and Exc
 
 ## Normalized record shape
 Every extracted item should carry:
-- source: document ID, original filename, file hash, revision, page/sheet/cell range, parser and parser version;
+- source: document ID, provider (`google_drive` or `direct_upload`), Drive file ID and revision ID when applicable, original filename, file hash, revision, page/sheet/cell range, parser and parser version;
 - content: original text/value and normalized representation;
 - classification: domain, entity type and suggested tags;
 - quality: extraction status, confidence, warnings, duplicate candidates;
@@ -32,8 +33,9 @@ Every extracted item should carry:
 For technical values, store the raw value and normalized value separately. Keep unit, material, thickness, machine model, laser power, controller/head, gas, pressure, speed, focus offset and operating conditions as separate fields when available. Never infer a missing unit or silently convert an ambiguous value.
 
 ## Suggested architecture
-- UI: authenticated Knowledge workspace with upload queue, preview, review and search.
-- API: authenticated upload-init, job-status, preview, approve/reject and search endpoints.
+- UI: authenticated Knowledge workspace with Drive folder/file picker, sync status, upload queue, preview, review and search.
+- Source adapter: read-only Google Drive API integration scoped to an approved folder; support manual sync first, then incremental changes after permission and reliability tests.
+- API: authenticated source selection/sync-init, job-status, preview, approve/reject and search endpoints.
 - Private object storage: original files and derived artifacts; generated object keys only.
 - Processing worker: parser sandbox, malware scanning, OCR adapter, normalization, duplicate detection and extraction limits.
 - Metadata store: ingestion jobs, source metadata, review state and approved normalized records.
@@ -51,7 +53,7 @@ For technical values, store the raw value and normalized value separately. Keep 
 - Deletion and retention policies must cover originals, extracted text, embeddings, logs and backups.
 
 ## Data and deployment gate
-The application branch currently uses Drizzle with Neon/PostgreSQL, while previous project notes also mention a Cloudflare Worker/D1 CRM. The canonical production database and private object store are not yet verified. Therefore this design does not create tables, migrations, buckets, external provider connections, or production resources. Confirm ownership, environment mapping, schema inventory, backup/restore and approved storage first.
+The application branch currently uses Drizzle with Neon/PostgreSQL, while previous project notes also mention a Cloudflare Worker/D1 CRM. The canonical production database and private object store are not yet verified. Google Drive is the desired source of documents, but the Google Drive connector is disabled by the workspace administrator and is not available to connect in this environment. Therefore live Drive browsing/sync cannot yet be tested here. Do not create OAuth credentials or service-account keys without explicit authorization. This design does not create tables, migrations, buckets, external provider connections, or production resources. Confirm an approved Drive integration path, ownership, environment mapping, schema inventory, backup/restore and approved storage first.
 
 ## Rollout plan
 1. **Contract and design:** typed ingestion/job/source schemas, limits, statuses and review rules.
