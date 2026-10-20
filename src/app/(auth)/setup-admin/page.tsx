@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { readSession } from "@/lib/session";
+import { PasswordField } from "@/components/password-field";
 import { setupFirstAdmin } from "./actions";
 
 export default async function SetupAdminPage({
@@ -28,11 +29,17 @@ export default async function SetupAdminPage({
         {status === "unavailable" && <p className="form-error" role="alert">Mã thiết lập không hợp lệ hoặc chưa được cấu hình.</p>}
         {status === "closed" && <p className="form-error" role="alert">Thiết lập đã đóng. Hãy đăng nhập bằng tài khoản hiện có.</p>}
         <form action={setupFirstAdmin} className="login-form">
-          <label>Họ tên<input name="name" autoComplete="name" minLength={2} maxLength={160} required /></label>
-          <label>Email công việc<input name="email" type="email" autoComplete="email" maxLength={254} required /></label>
-          <label>Mật khẩu<input name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} required /></label>
-          <label>Nhập lại mật khẩu<input name="confirmation" type="password" autoComplete="new-password" minLength={12} maxLength={128} required /></label>
-          <label>Mã thiết lập một lần<input name="token" type="password" autoComplete="off" required /></label>
+          <label htmlFor="name">Họ tên<input id="name" name="name" autoComplete="name" minLength={2} maxLength={160} required /></label>
+          <label htmlFor="email">Email công việc<input id="email" name="email" type="email" autoComplete="email" maxLength={254} required /></label>
+          <div className="password-control">
+            <label htmlFor="password">Mật khẩu</label>
+            <PasswordField id="password" name="password" autoComplete="new-password" minLength={12} maxLength={128} />
+          </div>
+          <div className="password-control">
+            <label htmlFor="confirmation">Nhập lại mật khẩu</label>
+            <PasswordField id="confirmation" name="confirmation" autoComplete="new-password" minLength={12} maxLength={128} />
+          </div>
+          <label htmlFor="token">Mã thiết lập một lần<input id="token" name="token" type="password" autoComplete="off" required /></label>
           <button className="primary-button" type="submit">Tạo tài khoản quản trị</button>
         </form>
         <p className="subtitle"><Link href="/login">Quay lại đăng nhập</Link></p>
