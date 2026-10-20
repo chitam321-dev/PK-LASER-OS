@@ -62,20 +62,43 @@ export async function POST(request: NextRequest) {
   if (!session) return NextResponse.json({ error: "Vui lòng đăng nhập." }, { status: 401 });
   if (session.role !== "admin") return NextResponse.json({ error: "Chỉ quản trị viên mới được đồng bộ Drive." }, { status: 403 });
 
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(contentLength) && contentLength > 1_000) {
+  const declaredLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > 1_000) {
     return NextResponse.json({ error: "Yêu cầu quá lớn." }, { status: 413 });
   }
 
   let initialPageToken: string | undefined;
-  if (contentLength > 0) {
+  if (request.body) {
     try {
-      const body = await request.json() as { pageToken?: unknown };
-      if (body.pageToken !== undefined &&
-          (typeof body.pageToken !== "string" || body.pageToken.length > 4_096)) {
-        return NextResponse.json({ error: "pageToken không hợp lệ." }, { status: 400 });
+      const reader = request.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let totalBytes = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        totalBytes += value.byteLength;
+        if (totalBytes > 1_000) {
+          await reader.cancel();
+          return NextResponse.json({ error: "Yêu cầu quá lớn." }, { status: 413 });
+        }
+        chunks.push(value);
       }
-      initialPageToken = body.pageToken as string | undefined;
+
+      const bytes = new Uint8Array(totalBytes);
+      let offset = 0;
+      for (const chunk of chunks) {
+        bytes.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+      const rawBody = new TextDecoder().decode(bytes);
+      if (rawBody.trim()) {
+        const body = JSON.parse(rawBody) as { pageToken?: unknown };
+        if (body.pageToken !== undefined &&
+            (typeof body.pageToken !== "string" || body.pageToken.length > 4_096)) {
+          return NextResponse.json({ error: "pageToken không hợp lệ." }, { status: 400 });
+        }
+        initialPageToken = body.pageToken as string | undefined;
+      }
     } catch {
       return NextResponse.json({ error: "Nội dung yêu cầu phải là JSON hợp lệ." }, { status: 400 });
     }
