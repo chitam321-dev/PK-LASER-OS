@@ -168,3 +168,35 @@ export const apiUsageDaily = pgTable("api_usage_daily", {
   quotaLimit: integer("quota_limit"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [uniqueIndex("api_usage_provider_endpoint_date_idx").on(table.provider, table.endpoint, table.usageDate)]);
+
+
+// Google Drive OAuth tokens are stored encrypted at the application layer.
+// The database must never contain raw Google access or refresh tokens.
+export const googleDriveConnections = pgTable("google_drive_connections", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  connectedBy: uuid("connected_by").references(() => users.id).notNull().unique(),
+  googleEmail: varchar("google_email", { length: 254 }).notNull(),
+  encryptedTokenBundle: text("encrypted_token_bundle").notNull(),
+  grantedScopes: text("granted_scopes").notNull(),
+  connectedAt: timestamp("connected_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const googleDriveSourceFiles = pgTable("google_drive_source_files", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  driveFileId: varchar("drive_file_id", { length: 256 }).notNull().unique(),
+  connectedBy: uuid("connected_by").references(() => users.id).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  mimeType: varchar("mime_type", { length: 160 }).notNull(),
+  modifiedTime: timestamp("modified_time", { withTimezone: true }),
+  revisionId: varchar("revision_id", { length: 256 }),
+  sizeBytes: varchar("size_bytes", { length: 32 }),
+  ownerEmail: varchar("owner_email", { length: 254 }),
+  reviewStatus: varchar("review_status", { length: 20 }).notNull().default("pending"),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("google_drive_files_review_status_idx").on(table.reviewStatus),
+  index("google_drive_files_connected_by_idx").on(table.connectedBy),
+]);
