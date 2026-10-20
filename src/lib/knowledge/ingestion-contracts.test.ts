@@ -50,6 +50,30 @@ test("extracted knowledge defaults to pending review, never auto-approved", () =
   assert.equal(item.technicalValues.length, 0);
 });
 
+test("preserves Google Drive file and revision provenance", () => {
+  const base = {
+    jobId: "d9428888-122b-4f3c-9e4b-8d1e5b2f1c20",
+    sourceDocumentId: "d9428888-122b-4f3c-9e4b-8d1e5b2f1c21",
+    originalFilename: "Raytools-BM111.pdf",
+    fileType: "pdf",
+    sha256: "c".repeat(64),
+    fileSizeBytes: 1024,
+    status: "queued",
+    uploadedBy: "admin",
+    uploadedAt: "2026-10-20T08:00:00.000Z",
+  };
+  const driveJob = ingestionJobSchema.parse({
+    ...base,
+    sourceProvider: "google_drive",
+    driveFileId: "drive-file-id",
+    driveRevisionId: "revision-7",
+    driveMimeType: "application/pdf",
+    driveModifiedTime: "2026-10-19T10:30:00.000Z",
+  });
+  assert.equal(driveJob.sourceProvider, "google_drive");
+  assert.equal(driveJob.driveRevisionId, "revision-7");
+});
+
 test("marks scanned PDFs as requiring OCR instead of successful empty extraction", () => {
   const base = {
     jobId: "d9428888-122b-4f3c-9e4b-8d1e5b2f1c20",
