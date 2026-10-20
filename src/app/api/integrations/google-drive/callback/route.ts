@@ -1,5 +1,4 @@
 import { timingSafeEqual } from "node:crypto";
-import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { readSession } from "@/lib/session";
 import { getDb } from "@/db";
